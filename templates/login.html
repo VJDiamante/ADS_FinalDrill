@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 28rem; margin: 1rem auto;">
+  <h1 class="card-title">Log in to CampusPrint</h1>
+
+  <form method="post" action="/login">
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+
+    <div class="form-group">
+      <label for="email">Sign in as</label>
+      <select id="email" name="email" required>
+        {% for u in users %}
+        <option value="{{ u.email }}">{{ u.name }} ({{ u.role }}) - {{ u.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-block">Log in</button>
+  </form>
+
+  <p class="form-hint">
+    This page stands in for Google OAuth, which would be restricted to
+    @psu.palawan.edu.ph accounts. Pick a seeded user to continue. No password is needed.
+  </p>
+</div>
+{% endblock %}

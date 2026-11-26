@@ -1,0 +1,43 @@
+{% macro format_order_id(order_id) -%}
+{{ "CP-%06d"|format(order_id) }}
+{%- endmacro %}
+
+
+{% macro status_badge(status) -%}
+<span class="badge badge-{{ status|lower|replace(' ', '-') }}">{{ status }}</span>
+{%- endmacro %}
+
+
+{% macro payment_badge(status) -%}
+<span class="badge badge-{{ status|lower }}">{{ status|capitalize }}</span>
+{%- endmacro %}
+
+
+{% macro table_head(headers) -%}
+<thead>
+  <tr>
+    {% for header in headers %}<th scope="col">{{ header }}</th>{% endfor %}
+  </tr>
+</thead>
+{%- endmacro %}
+
+
+{% macro table_row(cells, labels=none, href=none) -%}
+<tr{% if href %} class="row-link"{% endif %}>
+  {% for cell in cells %}
+  <td{% if labels %} data-label="{{ labels[loop.index0] }}"{% endif %}>
+    {%- if href and loop.first %}<a href="{{ href }}">{{ cell }}</a>{% else %}{{ cell }}{% endif -%}
+  </td>
+  {% endfor %}
+</tr>
+{%- endmacro %}
+
+
+{% macro empty_row(colspan, message) -%}
+<tr><td colspan="{{ colspan }}" class="empty-state">{{ message }}</td></tr>
+{%- endmacro %}
+
+
+{% macro empty_state(message) -%}
+<p class="empty-state">{{ message }}</p>
+{%- endmacro %}

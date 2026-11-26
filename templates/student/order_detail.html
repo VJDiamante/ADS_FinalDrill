@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.85em; background:#e5e7eb; color:#111; }
+  .badge-processing { background:#dbeafe; }
+  .badge-ready { background:#fef3c7; }
+  .badge-completed, .badge-paid { background:#d1fae5; }
+  .badge-unpaid { background:#fee2e2; }
+  .detail-list { display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; }
+  .detail-list dt { font-weight:bold; }
+  .detail-list dd { margin:0; word-break:break-word; }
+</style>
+
+<p><a href="{{ url_for('student.my_orders') }}">&larr; My orders</a></p>
+<h1>Order {{ order.code }}</h1>
+
+<p>
+  <span class="badge {% if order.order_status == 'Processing' %}badge-processing{% elif order.order_status == 'Ready for Pickup' %}badge-ready{% elif order.order_status == 'Completed' %}badge-completed{% endif %}">{{ order.order_status }}</span>
+  <span class="badge badge-{{ order.payment_status }}">{{ order.payment_status|capitalize }}</span>
+</p>
+
+<dl class="detail-list">
+  <dt>File</dt><dd>{{ order.original_filename }}</dd>
+  <dt>Paper size</dt><dd>{{ order.paper_size }}</dd>
+  <dt>Color mode</dt><dd>{{ 'Color' if order.color_mode == 'color' else 'Black &amp; white'|safe }}</dd>
+  <dt>Pages</dt><dd>{{ order.page_count }}</dd>
+  <dt>Copies</dt><dd>{{ order.copies }}</dd>
+  <dt>Total</dt><dd>&#8369;{{ '%.2f'|format(order.total_price) }}</dd>
+  <dt>Submitted</dt><dd>{{ order.created_at }}</dd>
+  <dt>Last updated</dt><dd>{{ order.updated_at }}</dd>
+</dl>
+
+<h2>Payment</h2>
+{% if payment %}
+<p>&#8369;{{ '%.2f'|format(payment.amount) }} paid by {{ payment.method }} on {{ payment.paid_at }}.</p>
+{% else %}
+<p>Not paid yet. Payment is collected at the print shop.</p>
+{% endif %}
+
+<h2>Status history</h2>
+{% if history %}
+<ol>
+  {% for h in history %}
+  <li>
+    {% if h.old_status %}{{ h.old_status }} &rarr; {% endif %}<strong>{{ h.new_status }}</strong>
+    &middot; {{ h.changed_at }} &middot; {{ h.changed_by_name }}
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p>No status changes yet.</p>
+{% endif %}
+{% endblock %}

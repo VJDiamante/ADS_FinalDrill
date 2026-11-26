@@ -1,0 +1,74 @@
+{% macro nav_link(href, label, active) -%}
+<a href="{{ href }}" class="nav-link{% if active %} active{% endif %}">{{ label }}</a>
+{%- endmacro -%}
+
+{%- set user_id = session.get('user_id') -%}
+{%- set role = session.get('role') -%}
+{%- set path = request.path -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Home{% endblock %} | CampusPrint</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">CampusPrint</a>
+
+      {% if user_id %}
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
+      <label for="nav-toggle" class="nav-toggle-btn">Menu</label>
+
+      <nav class="site-nav" aria-label="Main">
+        {% if role in ('student', 'faculty') %}
+          {{ nav_link('/orders/new', 'New order', path == '/orders/new') }}
+          {{ nav_link('/orders', 'My orders', path == '/orders' or (path.startswith('/orders/') and path != '/orders/new')) }}
+        {% endif %}
+        {% if role in ('staff', 'admin') %}
+          {{ nav_link('/staff/queue', 'Queue', path.startswith('/staff/')) }}
+        {% endif %}
+        {% if role == 'admin' %}
+          {{ nav_link('/admin/pricing', 'Pricing', path == '/admin/pricing') }}
+          {{ nav_link('/admin/audit-log', 'Audit log', path == '/admin/audit-log') }}
+        {% endif %}
+        {{ nav_link('/db', 'Database', path == '/db' or path.startswith('/db/')) }}
+      </nav>
+
+      <div class="user-box">
+        <span class="user-name">{{ session.get('user_name') or 'User #' ~ user_id }}</span>
+        <span class="role-tag role-{{ role }}">{{ role }}</span>
+        <form method="post" action="/logout" class="inline-form">
+          <button type="submit" class="btn btn-small btn-secondary">Log out</button>
+        </form>
+      </div>
+      {% else %}
+      <a class="nav-link" href="/login">Log in</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-list">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category if category in ('success', 'error', 'warning') else 'info' }}" role="alert">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">CampusPrint prototype &middot; Palawan State University</div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

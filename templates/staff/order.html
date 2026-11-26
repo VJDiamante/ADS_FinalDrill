@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.85em; background:#e5e7eb; color:#111; }
+  .badge-processing { background:#dbeafe; }
+  .badge-ready { background:#fef3c7; }
+  .badge-completed, .badge-paid { background:#d1fae5; }
+  .badge-unpaid { background:#fee2e2; }
+  .detail-list { display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; }
+  .detail-list dt { font-weight:bold; }
+  .detail-list dd { margin:0; word-break:break-word; }
+  .action-box { border:1px solid #e5e7eb; border-radius:6px; padding:12px; margin:12px 0; }
+</style>
+
+<p><a href="{{ url_for('staff.queue') }}">&larr; Queue</a></p>
+<h1>Order {{ order.code }}</h1>
+
+<p>
+  <span class="badge {% if order.order_status == 'Processing' %}badge-processing{% elif order.order_status == 'Ready for Pickup' %}badge-ready{% elif order.order_status == 'Completed' %}badge-completed{% endif %}">{{ order.order_status }}</span>
+  <span class="badge badge-{{ order.payment_status }}">{{ order.payment_status|capitalize }}</span>
+</p>
+
+<dl class="detail-list">
+  <dt>Customer</dt><dd>{{ order.customer }}</dd>
+  <dt>File</dt><dd>{{ order.original_filename }}</dd>
+  <dt>Paper size</dt><dd>{{ order.paper_size }}</dd>
+  <dt>Color mode</dt><dd>{{ 'Color' if order.color_mode == 'color' else 'Black and white' }}</dd>
+  <dt>Pages</dt><dd>{{ order.page_count }}</dd>
+  <dt>Copies</dt><dd>{{ order.copies }}</dd>
+  <dt>Total</dt><dd>&#8369;{{ '%.2f'|format(order.total_price) }}</dd>
+  <dt>Submitted</dt><dd>{{ order.created_at }}</dd>
+  <dt>Last updated</dt><dd>{{ order.updated_at }}</dd>
+</dl>
+
+<div class="action-box">
+  <h2>Status</h2>
+  {% if next_status %}
+  <form method="post" action="{{ url_for('staff.advance', order_id=order.order_id) }}">
+    <input type="hidden" name="version" value="{{ order.version }}">
+    <button type="submit">Advance status to {{ next_status }}</button>
+  </form>
+  {% if next_status == 'Completed' and order.payment_status != 'paid' %}
+  <p><small>This order must be paid before it can be completed.</small></p>
+  {% endif %}
+  {% else %}
+  <p>This order is completed.</p>
+  {% endif %}
+</div>
+
+<div class="action-box">
+  <h2>Payment</h2>
+  {% if payment %}
+  <p>&#8369;{{ '%.2f'|format(payment.amount) }} received by {{ payment.method }} on {{ payment.paid_at }}, recorded by {{ payment.received_by_name }}.</p>
+  {% else %}
+  <form method="post" action="{{ url_for('staff.pay', order_id=order.order_id) }}">
+    <label for="method">Payment method</label>
+    <select id="method" name="method">
+      {% for m in payment_methods %}
+      <option value="{{ m }}">{{ {'cash': 'Cash', 'gcash': 'GCash', 'maya': 'Maya'}[m] }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Mark as paid</button>
+  </form>
+  <p><small>Amount due: &#8369;{{ '%.2f'|format(order.total_price) }}</small></p>
+  {% endif %}
+</div>
+
+<h2>Status history</h2>
+{% if history %}
+<ol>
+  {% for h in history %}
+  <li>
+    {% if h.old_status %}{{ h.old_status }} &rarr; {% endif %}<strong>{{ h.new_status }}</strong>
+    &middot; {{ h.changed_at }} &middot; {{ h.changed_by_name }}
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p>No status changes yet.</p>
+{% endif %}
+{% endblock %}

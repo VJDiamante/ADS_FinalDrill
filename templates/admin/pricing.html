@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .table-wrap { overflow-x:auto; }
+  .table-wrap table { border-collapse:collapse; }
+  .table-wrap th, .table-wrap td { text-align:left; padding:6px 12px; border-bottom:1px solid #e5e7eb; }
+  .rate-error { color:#b00020; display:block; }
+  .rate-input-bad { border:1px solid #b00020; }
+</style>
+
+<h1>Pricing</h1>
+<p>Price per page in pesos. Changes apply to new orders only. Orders already placed keep the total they were given.</p>
+
+<form method="post" action="{{ url_for('admin.pricing') }}">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Paper size</th><th>Color mode</th><th>Price per page (&#8369;)</th></tr></thead>
+    <tbody>
+    {% for r in rates %}
+      <tr>
+        <td>{{ r.paper_size }}</td>
+        <td>{{ r.color_label }}</td>
+        <td>
+          <input type="number" name="rate_{{ r.rate_id }}" value="{{ r.input }}"
+                 min="0" max="10000" step="0.01" required
+                 aria-label="Price per page for {{ r.paper_size }} {{ r.color_label }}"
+                 class="{{ 'rate-input-bad' if r.error }}">
+          {% if r.error %}<small class="rate-error">{{ r.error }}</small>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p><button type="submit">Save rates</button></p>
+</form>
+{% endblock %}

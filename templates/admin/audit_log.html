@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .table-wrap { overflow-x:auto; }
+  .table-wrap table { width:100%; border-collapse:collapse; }
+  .table-wrap th, .table-wrap td { text-align:left; padding:6px 8px; border-bottom:1px solid #e5e7eb; }
+  .filter-error { color:#b00020; }
+</style>
+
+<h1>Audit log</h1>
+
+<form method="get" action="{{ url_for('admin.audit_log') }}">
+  <label for="order_id">Order</label>
+  <input type="text" id="order_id" name="order_id" value="{{ raw_filter }}" placeholder="12 or CP-000012">
+  <button type="submit">Filter</button>
+  {% if raw_filter %}<a href="{{ url_for('admin.audit_log') }}">Clear</a>{% endif %}
+</form>
+{% if error %}<p class="filter-error" role="alert">{{ error }}</p>{% endif %}
+
+{% if not error %}
+<p><small>{{ entries|length }} status change{{ '' if entries|length == 1 else 's' }}, newest first.
+{% if truncated %}Showing only the newest {{ limit }}. Filter by order to narrow the list.{% endif %}</small></p>
+
+{% if entries %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>When</th><th>Order</th><th>Customer</th><th>File</th><th>Change</th><th>Changed by</th></tr>
+  </thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td>{{ e.changed_at }}</td>
+      <td><a href="{{ url_for('staff.order_page', order_id=e.order_id) }}">{{ e.code }}</a></td>
+      <td>{{ e.customer_name }}</td>
+      <td>{{ e.original_filename }}</td>
+      <td>{% if e.old_status %}{{ e.old_status }}{% else %}&mdash;{% endif %} &rarr; <strong>{{ e.new_status }}</strong></td>
+      <td>{% if e.changed_by_name %}{{ e.changed_by_name }} ({{ e.changed_by_role }}){% else %}System{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No status changes found.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

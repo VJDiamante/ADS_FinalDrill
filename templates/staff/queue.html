@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.85em; background:#e5e7eb; color:#111; }
+  .badge-processing { background:#dbeafe; }
+  .badge-ready { background:#fef3c7; }
+  .badge-completed, .badge-paid { background:#d1fae5; }
+  .badge-unpaid { background:#fee2e2; }
+  .filters a { margin-right:12px; }
+  .filters a.active { font-weight:bold; text-decoration:underline; }
+  .table-wrap { overflow-x:auto; }
+  .table-wrap table { width:100%; border-collapse:collapse; }
+  .table-wrap th, .table-wrap td { text-align:left; padding:6px 8px; border-bottom:1px solid #e5e7eb; }
+</style>
+
+<h1>Print queue</h1>
+<p><small>Refreshes every 10 seconds. Last loaded at {{ refreshed_at }}.</small></p>
+
+<p class="filters">
+  <a href="{{ url_for('staff.queue') }}" class="{{ 'active' if selected == 'all' }}">All ({{ total }})</a>
+  {% for s in statuses %}
+  <a href="{{ url_for('staff.queue', status=s) }}" class="{{ 'active' if selected == s }}">{{ s }} ({{ counts[s] }})</a>
+  {% endfor %}
+</p>
+
+{% if orders %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Order</th><th>Customer</th><th>File</th><th>Paper</th><th>Pages &times; copies</th>
+        <th>Total</th><th>Status</th><th>Payment</th><th>Submitted</th></tr>
+  </thead>
+  <tbody>
+  {% for o in orders %}
+    <tr>
+      <td><a href="{{ url_for('staff.order_page', order_id=o.order_id) }}">{{ o.code }}</a></td>
+      <td>{{ o.customer }}</td>
+      <td>{{ o.original_filename }}</td>
+      <td>{{ o.paper_size }}, {{ 'Color' if o.color_mode == 'color' else 'B&W' }}</td>
+      <td>{{ o.page_count }} &times; {{ o.copies }}</td>
+      <td>&#8369;{{ '%.2f'|format(o.total_price) }}</td>
+      <td><span class="badge {% if o.order_status == 'Processing' %}badge-processing{% elif o.order_status == 'Ready for Pickup' %}badge-ready{% endif %}">{{ o.order_status }}</span></td>
+      <td><span class="badge badge-{{ o.payment_status }}">{{ o.payment_status|capitalize }}</span></td>
+      <td>{{ o.created_at }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No orders in this view.</p>
+{% endif %}
+
+<script>
+  setTimeout(function () {
+    if (!document.hidden) {
+      location.reload();
+    } else {
+      document.addEventListener("visibilitychange", function () {
+        location.reload();
+      }, { once: true });
+    }
+  }, 10000);
+</script>
+{% endblock %}

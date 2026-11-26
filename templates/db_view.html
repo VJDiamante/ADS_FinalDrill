@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .db-nav a { margin-right:10px; }
+  .db-nav a.current { font-weight:bold; text-decoration:underline; }
+  .table-wrap { overflow-x:auto; }
+  .table-wrap table { border-collapse:collapse; font-size:.9em; }
+  .table-wrap th, .table-wrap td { text-align:left; padding:4px 8px; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+  .table-wrap th { background:#f3f4f6; position:sticky; top:0; }
+  .null { color:#9ca3af; font-style:italic; }
+  tr.recent td { background:#fff3b0; }
+  .legend { display:inline-block; width:12px; height:12px; background:#fff3b0; border:1px solid #d6c75a; vertical-align:middle; }
+  .kind { color:#6b7280; font-size:.85em; }
+</style>
+
+{% if mode == 'index' %}
+<h1>Database viewer</h1>
+<p><small>Read-only. Refreshes every 5 seconds.</small></p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Name</th><th>Type</th><th>Rows</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td><a href="{{ url_for('db_view.show_table', table=e.name) }}">{{ e.name }}</a></td>
+      <td>{{ e.kind }}</td>
+      <td>{% if e.count is none %}<span class="null">unavailable</span>{% else %}{{ e.count }}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="db-nav">
+  <a href="{{ url_for('db_view.index') }}">All</a>
+  {% for n in names %}<a href="{{ url_for('db_view.show_table', table=n) }}" class="{{ 'current' if n == name }}">{{ n }}</a>{% endfor %}
+</p>
+<h1>{{ name }} <span class="kind">({{ kind }})</span></h1>
+
+{% if error %}
+<p role="alert">{{ error }}</p>
+{% else %}
+<p><small>
+  {{ total }} row{{ '' if total == 1 else 's' }}.
+  {% if total > rows|length %}Showing the newest {{ limit }} of {{ total }}.{% endif %}
+  <span class="legend"></span> changed in the last {{ highlight }} seconds.
+  {% if track_diff %}This table has no timestamp column, so changes are spotted by comparing with the previous refresh.{% endif %}
+</small></p>
+
+{% if rows %}
+<div class="table-wrap">
+<table id="db-table" data-name="{{ name }}" data-diff="{{ '1' if track_diff else '' }}" data-window="{{ highlight }}">
+  <thead><tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr data-key="{{ r.key }}" class="{{ 'recent' if r.recent }}">
+      {% for cell in r.cells %}<td>{% if cell is none %}<span class="null">NULL</span>{% else %}{{ cell }}{% endif %}</td>{% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>No rows.</p>
+{% endif %}
+{% endif %}
+{% endif %}
+
+<p><label><input type="checkbox" id="pause-refresh"> Pause auto-refresh</label></p>
+
+<script>
+  function diffRows(previous, rows, now, windowMs) {
+    var next = {};
+    var recent = [];
+    rows.forEach(function (row) {
+      var old = previous ? previous[row.key] : null;
+      var changedAt = old ? old.changedAt : 0;
+      if (previous && (!old || old.text !== row.text)) {
+        changedAt = now;
+      }
+      next[row.key] = { text: row.text, changedAt: changedAt };
+      if (changedAt && now - changedAt < windowMs) {
+        recent.push(row.key);
+      }
+    });
+    return { next: next, recent: recent };
+  }
+
+  (function () {
+    var pause = document.getElementById("pause-refresh");
+    var table = document.getElementById("db-table");
+
+    try {
+      pause.checked = sessionStorage.getItem("dbview:paused") === "1";
+    } catch (e) {}
+    pause.addEventListener("change", function () {
+      try {
+        sessionStorage.setItem("dbview:paused", pause.checked ? "1" : "0");
+      } catch (e) {}
+    });
+
+    if (table && table.getAttribute("data-diff") === "1") {
+      var storeKey = "dbview:" + table.getAttribute("data-name");
+      var previous = null;
+      try {
+        previous = JSON.parse(localStorage.getItem(storeKey));
+      } catch (e) {}
+      var trs = Array.prototype.slice.call(table.querySelectorAll("tbody tr"));
+      var rows = trs.map(function (tr) {
+        return { key: tr.getAttribute("data-key"),
+                 text: tr.textContent.replace(/\s+/g, " ").trim() };
+      });
+      var windowMs = Number(table.getAttribute("data-window")) * 1000;
+      var result = diffRows(previous, rows, Date.now(), windowMs);
+      trs.forEach(function (tr) {
+        if (result.recent.indexOf(tr.getAttribute("data-key")) !== -1) {
+          tr.classList.add("recent");
+        }
+      });
+      try {
+        localStorage.setItem(storeKey, JSON.stringify(result.next));
+      } catch (e) {}
+    }
+
+    setInterval(function () {
+      if (!pause.checked && !document.hidden) {
+        location.reload();
+      }
+    }, 5000);
+  })();
+</script>
+{% endblock %}

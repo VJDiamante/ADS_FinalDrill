@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New print order</h1>
+
+{% if error %}
+<p class="flash error" role="alert">{{ error }}</p>
+{% endif %}
+
+<form id="order-form" method="post" action="{{ url_for('student.new_order') }}"
+      enctype="multipart/form-data" data-price-url="{{ url_for('student.api_price') }}">
+
+  <p>
+    <label for="file">File (PDF, DOC or DOCX, up to 10 MB)</label><br>
+    <input type="file" id="file" name="file" accept=".pdf,.doc,.docx" required>
+  </p>
+
+  <p>
+    <label for="paper_size">Paper size</label><br>
+    <select id="paper_size" name="paper_size">
+      {% for size in paper_sizes %}
+      <option value="{{ size }}" {% if form.paper_size == size %}selected{% endif %}>{{ size }}</option>
+      {% endfor %}
+    </select>
+  </p>
+
+  <p>
+    <label for="color_mode">Color mode</label><br>
+    <select id="color_mode" name="color_mode">
+      {% for value, label in color_modes %}
+      <option value="{{ value }}" {% if form.color_mode == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </p>
+
+  <p>
+    <label for="page_count">Number of pages</label><br>
+    <input type="number" id="page_count" name="page_count" min="1" step="1"
+           value="{{ form.page_count }}">
+    <br><small id="pages-hint">Word files: type the number of pages.</small>
+  </p>
+
+  <p>
+    <label for="copies">Copies</label><br>
+    <input type="number" id="copies" name="copies" min="1" step="1"
+           value="{{ form.copies }}" required>
+  </p>
+
+  <p>
+    <strong>Total:</strong>
+    <span id="price-total" style="font-size:1.4em;font-weight:bold">&mdash;</span>
+    <br><small id="price-error" style="color:#b00020"></small>
+  </p>
+
+  <p><button type="submit">Submit order</button>
+     <a href="{{ url_for('student.my_orders') }}">Cancel</a></p>
+</form>
+
+<script src="{{ url_for('static', filename='js/price_preview.js') }}"></script>
+{% endblock %}
